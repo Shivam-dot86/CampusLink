@@ -1,0 +1,8 @@
+{
+  "name": "Remix CAMPUSLINK - Campus-to-Corporate Placement \u0026 Analytics",
+  "description": "AI-powered Campus-to-Corporate Placement Management and Analytics Platform for Rooman Technologies to streamline student readiness, recruiter matching, drive scheduling, and placement insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
