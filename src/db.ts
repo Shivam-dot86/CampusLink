@@ -37,12 +37,17 @@ export interface DatabaseState {
   lastUpdated: string;
 }
 
-const DB_DIR = path.join(process.cwd(), 'data');
+// On Vercel the deployment filesystem is read-only; only /tmp is writable (and ephemeral).
+const DB_DIR = process.env.VERCEL ? '/tmp/campuslink-data' : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+// Ensure data directory exists (never crash the whole function over this)
+try {
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('[DB] Could not create data directory, running in-memory only:', err);
 }
 
 // In-memory cache for ultra-fast queries and sync
