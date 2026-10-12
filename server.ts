@@ -2249,7 +2249,12 @@ async function startServer() {
   });
 }
 
+// Only start the standalone HTTP listener when not running inside Vercel Serverless Functions
+const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+if (!isVercel) {
+  startServer().catch((err) => {
+    console.error('Failed to start server:', err);
+  });
+}
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-});
+export default app;

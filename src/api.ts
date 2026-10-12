@@ -13,7 +13,16 @@ import {
   AuthResponse
 } from './types';
 
-// API Service connecting frontend seamlessly to backend & SQLite database
+async function parseJsonResponse<T = any>(res: Response): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text();
+    throw new Error(`Server returned non-JSON response (${res.status}): ${text.slice(0, 60)}`);
+  }
+  return res.json();
+}
+
+// API Service connecting frontend seamlessly to backend & database
 export const api = {
   // Fetch full state snapshot on load
   getState: async (): Promise<{
@@ -28,12 +37,12 @@ export const api = {
   }> => {
     const res = await fetch('/api/db/state');
     if (!res.ok) throw new Error('Failed to load database state');
-    return res.json();
+    return parseJsonResponse(res);
   },
 
   resetDatabase: async () => {
     const res = await fetch('/api/db/reset', { method: 'POST' });
-    return res.json();
+    return parseJsonResponse(res);
   },
 
   // Students
@@ -240,7 +249,7 @@ export const api = {
   users: {
     list: async (): Promise<UserAccount[]> => {
       const res = await fetch('/api/users');
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       return data.users || [];
     },
     get: async (id: string): Promise<UserAccount> => {
