@@ -283,138 +283,119 @@ export function saveMongoUri(uri: string) {
   }
 }
 
-let mongoInitPromise: Promise<void> | null = null;
-
 /**
  * Initializes MongoDB connection using MONGODB_URI.
  * Automatically checks environment, data/mongodb_config.json, and .env file on server start.
  */
 export async function initMongoDB() {
-  if (mongoose.connection.readyState === 1) {
+  let uri = process.env.MONGODB_URI ? process.env.MONGODB_URI.trim() : '';
+
+  if (!uri) {
+    // 1. Try reading from ./data/mongodb_config.json
+    try {
+      const configPath = path.resolve(process.cwd(), 'data', 'mongodb_config.json');
+      if (fs.existsSync(configPath)) {
+        const raw = fs.readFileSync(configPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed.uri && typeof parsed.uri === 'string' && parsed.uri.trim()) {
+          uri = parsed.uri.trim();
+          process.env.MONGODB_URI = uri;
+          console.log('[MongoDB] Automatically loaded saved MONGODB_URI from ./data/mongodb_config.json on app start.');
+        }
+      }
+    } catch (e) {
+      console.warn('[MongoDB] Failed to load mongodb_config.json:', e);
+    }
+  }
+
+  if (!uri) {
+    // 2. Try reading from .env file
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        const match = envContent.match(/MONGODB_URI=["']?([^"'\r\n]+)["']?/);
+        if (match && match[1] && match[1].trim()) {
+          uri = match[1].trim();
+          process.env.MONGODB_URI = uri;
+          console.log('[MongoDB] Automatically loaded MONGODB_URI from .env file on app start.');
+        }
+      }
+    } catch (e) {
+      console.warn('[MongoDB] Failed to read .env file:', e);
+    }
+  }
+
+  if (uri) {
+    if (uri.includes('.mongodb.net/?')) {
+      uri = uri.replace('.mongodb.net/?', '.mongodb.net/placement_ready?');
+    } else if (uri.endsWith('.mongodb.net/')) {
+      uri = uri + 'placement_ready?retryWrites=true&w=majority';
+    } else if (uri.endsWith('.mongodb.net')) {
+      uri = uri + '/placement_ready?retryWrites=true&w=majority';
+    }
+    process.env.MONGODB_URI = uri;
+  }
+
+  if (!uri) {
+    console.log('[MongoDB] MONGODB_URI is not set in environment or config. Operating in Local Resilient Store mode.');
+    connectionStatus.connected = false;
+    connectionStatus.uriConfigured = false;
+    connectionStatus.mode = 'Local Resilient Store (Pending Atlas URI)';
+    return;
+  }
+
+  connectionStatus.uriConfigured = true;
+
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      try {
+        await mongoose.disconnect();
+      } catch (discErr) {
+        // ignore
+      }
+    }
+    console.log('[MongoDB] Connecting automatically to MongoDB Atlas cluster...');
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 8000,
+      socketTimeoutMS: 45000,
+    });
+
     connectionStatus.connected = true;
     connectionStatus.mode = 'MongoDB Atlas';
     connectionStatus.clusterHost = mongoose.connection.host;
     connectionStatus.databaseName = mongoose.connection.name;
     connectionStatus.lastError = undefined;
-    return;
-  }
 
-  if (mongoInitPromise) {
-    return mongoInitPromise;
-  }
+    console.log(`[MongoDB] Connected successfully to MongoDB Atlas! Host: ${mongoose.connection.host}, DB: ${mongoose.connection.name}`);
 
-  mongoInitPromise = (async () => {
-    let uri = process.env.MONGODB_URI ? process.env.MONGODB_URI.trim() : '';
+    // Seed/sync collections including users into MongoDB Atlas
+    await seedMongoIfEmpty();
+  } catch (err: any) {
+    console.log('[MongoDB] Connection attempt error:', err?.message || err);
+    connectionStatus.connected = false;
+    connectionStatus.lastError = err?.message || String(err);
+    connectionStatus.mode = 'Local Resilient Store (Pending Atlas URI)';
 
-    if (!uri) {
-      // 1. Try reading from ./data/mongodb_config.json
-      try {
-        const configPath = path.resolve(process.cwd(), 'data', 'mongodb_config.json');
-        if (fs.existsSync(configPath)) {
-          const raw = fs.readFileSync(configPath, 'utf-8');
-          const parsed = JSON.parse(raw);
-          if (parsed.uri && typeof parsed.uri === 'string' && parsed.uri.trim()) {
-            uri = parsed.uri.trim();
-            process.env.MONGODB_URI = uri;
-            console.log('[MongoDB] Automatically loaded saved MONGODB_URI from ./data/mongodb_config.json on app start.');
-          }
+    // Soft retry in background
+    if (!retryTimer && process.env.MONGODB_URI) {
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        if (!connectionStatus.connected) {
+          initMongoDB();
         }
-      } catch (e) {
-        console.warn('[MongoDB] Failed to load mongodb_config.json:', e);
-      }
+      }, 30000);
     }
-
-    if (!uri) {
-      // 2. Try reading from .env file
-      try {
-        const envPath = path.resolve(process.cwd(), '.env');
-        if (fs.existsSync(envPath)) {
-          const envContent = fs.readFileSync(envPath, 'utf-8');
-          const match = envContent.match(/MONGODB_URI=["']?([^"'\r\n]+)["']?/);
-          if (match && match[1] && match[1].trim()) {
-            uri = match[1].trim();
-            process.env.MONGODB_URI = uri;
-            console.log('[MongoDB] Automatically loaded MONGODB_URI from .env file on app start.');
-          }
-        }
-      } catch (e) {
-        console.warn('[MongoDB] Failed to read .env file:', e);
-      }
-    }
-
-    if (uri) {
-      if (uri.includes('.mongodb.net/?')) {
-        uri = uri.replace('.mongodb.net/?', '.mongodb.net/placement_ready?');
-      } else if (uri.endsWith('.mongodb.net/')) {
-        uri = uri + 'placement_ready?retryWrites=true&w=majority';
-      } else if (uri.endsWith('.mongodb.net')) {
-        uri = uri + '/placement_ready?retryWrites=true&w=majority';
-      }
-      process.env.MONGODB_URI = uri;
-    }
-
-    if (!uri) {
-      console.log('[MongoDB] MONGODB_URI is not set in environment or config. Operating in Local Resilient Store mode.');
-      connectionStatus.connected = false;
-      connectionStatus.uriConfigured = false;
-      connectionStatus.mode = 'Local Resilient Store (Pending Atlas URI)';
-      return;
-    }
-
-    connectionStatus.uriConfigured = true;
-
-    try {
-      if (mongoose.connection.readyState === 0) {
-        console.log('[MongoDB] Connecting automatically to MongoDB Atlas cluster...');
-        await mongoose.connect(uri, {
-          serverSelectionTimeoutMS: 8000,
-          socketTimeoutMS: 45000,
-        });
-      }
-
-      if (mongoose.connection.readyState === 1) {
-        connectionStatus.connected = true;
-        connectionStatus.mode = 'MongoDB Atlas';
-        connectionStatus.clusterHost = mongoose.connection.host;
-        connectionStatus.databaseName = mongoose.connection.name;
-        connectionStatus.lastError = undefined;
-
-        console.log(`[MongoDB] Connected successfully to MongoDB Atlas! Host: ${mongoose.connection.host}, DB: ${mongoose.connection.name}`);
-
-        // Seed/sync collections including users into MongoDB Atlas
-        await seedMongoIfEmpty();
-      }
-    } catch (err: any) {
-      console.log('[MongoDB] Connection attempt error:', err?.message || err);
-      connectionStatus.connected = false;
-      connectionStatus.lastError = err?.message || String(err);
-      connectionStatus.mode = 'Local Resilient Store (Pending Atlas URI)';
-
-      // Soft retry in background
-      if (!retryTimer && process.env.MONGODB_URI) {
-        retryTimer = setTimeout(() => {
-          retryTimer = null;
-          if (!connectionStatus.connected && mongoose.connection.readyState === 0) {
-            initMongoDB();
-          }
-        }, 30000);
-      }
-    }
-  })().finally(() => {
-    mongoInitPromise = null;
-  });
-
-  return mongoInitPromise;
+  }
 }
+
+
 
 /**
  * Automatically seeds benchmark placement data into MongoDB collections if empty.
  */
 async function seedMongoIfEmpty() {
-  if (mongoose.connection.readyState !== 1) {
-    connectionStatus.connected = false;
-    return;
-  }
+  if (!connectionStatus.connected) return;
 
   try {
     const studentCount = await StudentModel.countDocuments();
@@ -464,7 +445,7 @@ async function seedMongoIfEmpty() {
     const fullUsers = (fileDb.getAll() as any).users || [];
     if (fullUsers.length > 0) {
       for (const u of fullUsers) {
-        if (u.email && mongoose.connection.readyState === 1) {
+        if (u.email) {
           await UserModel.findOneAndUpdate(
             { email: u.email.toLowerCase() },
             u,
@@ -477,18 +458,16 @@ async function seedMongoIfEmpty() {
 
     // Bi-directional sync: Import any users from MongoDB Atlas 'users' collection into local store
     try {
-      if (mongoose.connection.readyState === 1) {
-        const atlasUsers = await UserModel.find().lean().exec();
-        if (atlasUsers && atlasUsers.length > 0) {
-          let importedCount = 0;
-          for (const au of atlasUsers) {
-            if (au.email) {
-              fileDb.users.create(au);
-              importedCount++;
-            }
+      const atlasUsers = await UserModel.find().lean().exec();
+      if (atlasUsers && atlasUsers.length > 0) {
+        let importedCount = 0;
+        for (const au of atlasUsers) {
+          if (au.email) {
+            fileDb.users.create(au);
+            importedCount++;
           }
-          console.log(`[MongoDB] Bi-directional sync verified: ${importedCount} user(s) in local store synced with MongoDB Atlas.`);
         }
+        console.log(`[MongoDB] Bi-directional sync verified: ${importedCount} user(s) in local store synced with MongoDB Atlas.`);
       }
     } catch (syncErr) {
       console.warn('[MongoDB] Note during Atlas user back-fill to local store:', syncErr);

@@ -16,8 +16,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import saasProductImg from '../assets/images/campuslink_hero_preview.svg';
-import workflowImg from '../assets/images/campus_to_corporate_workflow.svg';
+import saasProductImg from '../assets/images/saas_product_preview_1791701796392.jpg';
 import { useTheme } from '../context/ThemeContext';
 import { CampusLinkLogo } from './CampusLinkLogo';
 
@@ -265,8 +264,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenLogi
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-950">
                   <img
                     src={saasProductImg}
-                    alt="CAMPUSLINK SaaS Placement Intelligence & Analytics Dashboard Preview"
-                    className="w-full h-full object-cover object-top transition-all duration-700 ease-out group-hover:scale-[1.02] filter drop-shadow-md"
+                    alt="CAMPUSLINK SaaS Placement Analytics Dashboard Preview"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                   />
 
                   {/* Gentle gradient scrim at bottom edge for contrast harmony */}
@@ -371,32 +370,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenLogi
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* 4.5. WORKFLOW ILLUSTRATION SECTION */}
-      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="p-6 sm:p-10 rounded-[12px] bg-slate-900 border border-slate-800/90 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 blur-[120px] pointer-events-none" />
-          <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
-              Automated Campus-To-Corporate Engine
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              From Student Registration to Corporate Offer Clearance
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Four unified stages powering Rooman Autonomous Institute &amp; corporate hiring partners.
-            </p>
-          </div>
-
-          <div className="relative rounded-[8px] overflow-hidden border border-slate-800 bg-slate-950/60 p-2 sm:p-4 shadow-lg transition-transform duration-500 hover:scale-[1.01]">
-            <img
-              src={workflowImg}
-              alt="CAMPUSLINK Campus-to-Corporate Placement Workflow Architecture"
-              className="w-full h-auto object-contain rounded-[6px]"
-            />
-          </div>
         </div>
       </section>
 

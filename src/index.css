@@ -9,19 +9,8 @@
 }
 
 html {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
   scroll-behavior: smooth;
   scroll-padding-top: 5rem;
-}
-
-html.dark {
-  background-color: #090d16;
-  color: #f1f5f9;
 }
 
 :root.dark {
@@ -30,10 +19,7 @@ html.dark {
 
 body {
   margin: 0;
-  padding: 0;
   min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
   background-color: #f8fafc;
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
@@ -44,14 +30,6 @@ body {
 .dark body {
   background-color: #090d16;
   color: #f1f5f9;
-}
-
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Smooth Fade In and Fade Out Animations */

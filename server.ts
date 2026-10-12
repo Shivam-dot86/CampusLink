@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
@@ -40,15 +41,6 @@ function verifyAuthToken(req: express.Request, res: express.Response, next: expr
 }
 
 app.use(express.json({ limit: '10mb' }));
-
-// Normalize URL path for Vercel serverless function rewrites
-app.use((req, res, next) => {
-  // If request URL does not start with /api (e.g. /db/state or /users), normalize to /api/db/state
-  if (!req.url.startsWith('/api') && !req.url.startsWith('/favicon') && !req.url.startsWith('/logo')) {
-    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
-  }
-  next();
-});
 
 // Initialize Google GenAI client lazily or safely
 let aiClient: GoogleGenAI | null = null;
@@ -2232,10 +2224,21 @@ Return ONLY a valid JSON object matching this schema:
   }
 });
 
+// Ensure MongoDB connection on API calls in serverless environments
+app.use(async (req, res, next) => {
+  if (req.path && req.path.startsWith('/api')) {
+    try {
+      await initMongoDB();
+    } catch (e) {
+      // Handled gracefully inside initMongoDB
+    }
+  }
+  next();
+});
+
 // Setup Vite middleware for development or serve dist in production
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -2251,16 +2254,13 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`CAMPUSLINK Server running on http://0.0.0.0:${PORT}`);
-    // Connect to MongoDB Atlas asynchronously
     initMongoDB().catch((err) => {
       console.warn('[MongoDB] Initial connection attempt deferred:', err?.message || err);
     });
   });
 }
 
-// Only start the standalone HTTP listener when not running inside Vercel Serverless Functions
-const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
-if (!isVercel) {
+if (!process.env.VERCEL) {
   startServer().catch((err) => {
     console.error('Failed to start server:', err);
   });
