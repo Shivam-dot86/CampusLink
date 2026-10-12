@@ -129,6 +129,10 @@ export const db = {
     recalculateStats();
     return dbState;
   },
+  getState: () => {
+    recalculateStats();
+    return dbState;
+  },
 
   resetDefaults: () => {
     dbState = getDefaultState();
