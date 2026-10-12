@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
@@ -41,6 +40,15 @@ function verifyAuthToken(req: express.Request, res: express.Response, next: expr
 }
 
 app.use(express.json({ limit: '10mb' }));
+
+// Normalize URL path for Vercel serverless function rewrites
+app.use((req, res, next) => {
+  // If request URL does not start with /api (e.g. /db/state or /users), normalize to /api/db/state
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/favicon') && !req.url.startsWith('/logo')) {
+    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+  }
+  next();
+});
 
 // Initialize Google GenAI client lazily or safely
 let aiClient: GoogleGenAI | null = null;
@@ -2227,6 +2235,7 @@ Return ONLY a valid JSON object matching this schema:
 // Setup Vite middleware for development or serve dist in production
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
