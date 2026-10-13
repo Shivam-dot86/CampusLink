@@ -74,34 +74,71 @@ export function sanitizeUser(user: UserAccount): UserAccount {
   return safe as UserAccount;
 }
 
-// Initialize on boot
-try {
-  if (fs.existsSync(DB_FILE)) {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    dbState = JSON.parse(raw);
-    if (!Array.isArray(dbState.users)) {
-      dbState.users = [];
-      persistSync();
-    }
-    console.log(`[DB] Loaded persistent database with ${dbState.users?.length || 0} users, ${dbState.students.length} students and ${dbState.drives.length} drives.`);
-  } else {
-    dbState = getDefaultState();
-    persistSync();
-    console.log('[DB] Bootstrapped initial persistent database.');
-  }
-} catch (err) {
-  console.error('[DB] Failed to load database file, restoring defaults:', err);
-  dbState = getDefaultState();
-}
-
 function persistSync() {
   try {
+    if (!dbState) return;
     dbState.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
+    const jsonStr = JSON.stringify(dbState, null, 2);
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, jsonStr, 'utf-8');
+    fs.renameSync(tmpFile, DB_FILE);
   } catch (err) {
-    console.error('[DB] Failed to persist data to disk:', err);
+    try {
+      if (dbState) {
+        fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
+      }
+    } catch (writeErr) {
+      console.warn('[DB] Could not write database.json to disk (operating in-memory):', writeErr);
+    }
   }
 }
+
+// Initialize on boot with automatic fallback and state sanitization
+function initDatabaseState(): DatabaseState {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      if (!raw || !raw.trim()) {
+        console.warn('[DB] database.json was empty, restoring clean default state.');
+        const defaultState = getDefaultState();
+        dbState = defaultState;
+        persistSync();
+        return defaultState;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Parsed JSON is invalid or not an object');
+      }
+
+      const loadedState: DatabaseState = {
+        users: Array.isArray(parsed.users) ? parsed.users : [],
+        students: Array.isArray(parsed.students) && parsed.students.length > 0 ? parsed.students : INITIAL_STUDENTS,
+        drives: Array.isArray(parsed.drives) && parsed.drives.length > 0 ? parsed.drives : INITIAL_DRIVES,
+        slots: Array.isArray(parsed.slots) && parsed.slots.length > 0 ? parsed.slots : INITIAL_SCHEDULE_SLOTS,
+        conflicts: Array.isArray(parsed.conflicts) && parsed.conflicts.length > 0 ? parsed.conflicts : INITIAL_CONFLICTS,
+        offers: Array.isArray(parsed.offers) && parsed.offers.length > 0 ? parsed.offers : INITIAL_OFFERS,
+        notifications: Array.isArray(parsed.notifications) && parsed.notifications.length > 0 ? parsed.notifications : INITIAL_NOTIFICATIONS,
+        preTalks: Array.isArray(parsed.preTalks) && parsed.preTalks.length > 0 ? parsed.preTalks : INITIAL_PRE_TALKS,
+        stats: parsed.stats && typeof parsed.stats === 'object' ? { ...INITIAL_STATS, ...parsed.stats } : INITIAL_STATS,
+        lastUpdated: parsed.lastUpdated || new Date().toISOString()
+      };
+
+      console.log(`[DB] Successfully loaded persistent database.json with ${loadedState.users.length} users, ${loadedState.students.length} students, and ${loadedState.drives.length} drives.`);
+      return loadedState;
+    }
+  } catch (err: any) {
+    console.error('[DB] Error loading database.json file, restoring defaults:', err?.message || err);
+  }
+
+  const defaultState = getDefaultState();
+  dbState = defaultState;
+  persistSync();
+  console.log('[DB] Bootstrapped initial persistent database.json.');
+  return defaultState;
+}
+
+dbState = initDatabaseState();
 
 // Recalculate stats dynamically based on current state
 function recalculateStats() {

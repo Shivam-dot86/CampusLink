@@ -93,7 +93,8 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const CurrentRoleIcon = roleConfigs[userRole].icon;
+  const activeRoleConfig = (userRole && roleConfigs[userRole]) ? roleConfigs[userRole] : roleConfigs.Student;
+  const CurrentRoleIcon = activeRoleConfig.icon;
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-2xs h-16 flex items-center justify-between px-4 sm:px-6 transition-colors duration-200">
@@ -155,15 +156,15 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 p-1.5 sm:pr-3 rounded-xl transition text-left cursor-pointer"
           >
             <div
-              className={`h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs ${roleConfigs[userRole].color}`}
+              className={`h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs ${activeRoleConfig.color}`}
             >
               <CurrentRoleIcon className="w-3.5 h-3.5" />
             </div>
             <div className="hidden sm:block leading-tight">
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[120px]">
-                {currentUser.name}
+                {currentUser?.name || 'Authorized User'}
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">{roleConfigs[userRole].label}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{activeRoleConfig.label}</p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
@@ -182,14 +183,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-1 border border-slate-100 dark:border-slate-800/80">
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate">
-                      {currentUser.name}
+                      {currentUser?.name || 'Authorized User'}
                     </p>
                     <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800/80 px-1.5 py-0.5 rounded">
-                      {roleConfigs[userRole].badge}
+                      {activeRoleConfig.badge}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    {currentUser.email}
+                    {currentUser?.email || ''}
                   </p>
                 </div>
 

@@ -16,7 +16,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import saasProductImg from '../assets/images/saas_product_preview_1791701796392.jpg';
+import campusLinkBannerImg from '../assets/images/Gemini_Generated_Image_kmiraakmiraakmir.svg';
 import { useTheme } from '../context/ThemeContext';
 import { CampusLinkLogo } from './CampusLinkLogo';
 
@@ -263,8 +263,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenLogi
                 {/* Sleek Generated Product Preview Image */}
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-950">
                   <img
-                    src={saasProductImg}
-                    alt="CAMPUSLINK SaaS Placement Analytics Dashboard Preview"
+                    src={campusLinkBannerImg}
+                    alt="CampusLink - Your Entire Campus, Connected."
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                   />
 
