@@ -1063,6 +1063,289 @@ app.post('/api/gemini/match-candidate', async (req, res) => {
   }
 });
 
+// -------------------------------------------------------------
+// GEMINI AI ASSISTANT ENDPOINTS
+// -------------------------------------------------------------
+
+// 1. Tailor Resume (Google X-Y-Z formula)
+app.post('/api/gemini/tailor-resume', async (req, res) => {
+  try {
+    const { resumeSummary, skills, targetRole, targetCompany, experience } = req.body;
+    const ai = getAIClient();
+    if (ai) {
+      const prompt = `You are a Tier-1 Tech Recruiter and ATS Optimization Expert.
+Tailor the following student resume for the role: ${targetRole || 'Full Stack Engineer'} at ${targetCompany || 'Top Tech Firm'}.
+Transform bullet points using the Google X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]".
+Candidate Skills: ${JSON.stringify(skills || [])}
+Resume Summary: "${resumeSummary || ''}"
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "tailoredHeadline": string,
+  "xyzBullets": [
+    {
+      "original": string,
+      "xyzFormat": string,
+      "impact": string
+    }
+  ],
+  "atsMatchedKeywords": string[],
+  "atsMissingKeywords": string[],
+  "projectedAtsScore": number
+}`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.2 }
+      });
+      return res.json({ success: true, ...JSON.parse(response.text || '{}') });
+    }
+    return res.json({
+      success: true,
+      tailoredHeadline: `Aspiring ${targetRole || 'Cloud & Full Stack Engineer'} | Scalable Microservices, Docker & React`,
+      xyzBullets: [
+        {
+          original: 'Developed an online booking platform with React and Node.js.',
+          xyzFormat: 'Accomplished a 35% reduction in reservation drop-offs as measured by Google Analytics funnels across 4,200 sessions, by architecting an async React & Node.js checkout pipeline with Redis optimistic locking.',
+          impact: 'Highlights commercial impact, measurable funnel improvement, and concurrency control.'
+        },
+        {
+          original: 'Optimized database queries and improved performance.',
+          xyzFormat: 'Accomplished a 58% reduction in P95 database query latency as measured by pg_stat_statements, by designing composite PostgreSQL B-Tree indexes and implementing query caching.',
+          impact: 'Demonstrates deep database internals, profiling methodology, and measurable speedup.'
+        }
+      ],
+      atsMatchedKeywords: ['React', 'Node.js', 'PostgreSQL', 'Microservices', 'RESTful APIs', 'Git', 'Agile'],
+      atsMissingKeywords: ['Docker', 'Kubernetes', 'CI/CD Pipelines', 'Distributed Tracing', 'AWS/GCP'],
+      projectedAtsScore: 94,
+      fallback: true
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to tailor resume' });
+  }
+});
+
+// 2. Make Placement Ready (1-Click Accelerator)
+app.post('/api/gemini/make-placement-ready', async (req, res) => {
+  try {
+    const { student, targetCompany, daysUntilDrive } = req.body;
+    const ai = getAIClient();
+    if (ai) {
+      const prompt = `You are CAMPUSLINK Chief Placement Director at Rooman Technologies.
+Create a hyper-accelerated "Placement Ready" sprint plan to elevate ${student?.name || 'this student'} to Corporate Ready status within ${daysUntilDrive || 14} days.
+Target Company: ${targetCompany || 'Top Tech & Cloud Recruiters'}
+Student Profile:
+Branch: ${student?.branch} | CGPA: ${student?.cgpa} | Readiness: ${student?.readinessScore}%
+LeetCode Solved: ${student?.leetcodeSolved || 0} | Backlogs: ${student?.activeBacklogs || 0}
+Skills: ${JSON.stringify(student?.skills || [])}
+
+Return JSON matching:
+{
+  "readinessSprintTitle": string,
+  "projectedScoreIncrease": number,
+  "dailySprintTasks": [
+    { "day": number, "module": string, "task": string, "durationMinutes": number, "benchmark": string }
+  ],
+  "mustKnowCompanyTopics": string[],
+  "mockInterviewFocusAreas": string[],
+  "rooomRemedialClinicsRecommended": string[]
+}`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.2 }
+      });
+      const parsed = JSON.parse(response.text || '{}');
+      return res.json({ success: true, plan: parsed });
+    }
+
+    return res.json({
+      success: true,
+      plan: {
+        readinessSprintTitle: 'Corporate Readiness Fast-Track Sprint (Rooman Tech)',
+        projectedScoreIncrease: 16,
+        dailySprintTasks: [
+          { day: 1, module: 'DSA Foundations', task: 'Master Two Pointers & Sliding Window with 8 medium problems', durationMinutes: 120, benchmark: '100% test case pass on HackerRank' },
+          { day: 2, module: 'Core CS Essentials', task: 'Review OS Concurrency, Virtual Memory, and SQL Indexes', durationMinutes: 90, benchmark: 'Score >80% on Rooman Technical Diagnostic' },
+          { day: 3, module: 'System Design & APIs', task: 'Design an URL Shortener and understand caching with Redis', durationMinutes: 90, benchmark: 'Draw complete architecture diagram in Excalidraw' },
+          { day: 4, module: 'ATS Resume Polish', task: 'Incorporate 10 role-specific keywords and upload revised PDF', durationMinutes: 60, benchmark: 'ATS Score > 90/100' },
+          { day: 5, module: 'Behavioral & STAR', task: 'Prepare answers for top 5 leadership & conflict questions', durationMinutes: 60, benchmark: 'Record 3-minute video pitch' },
+          { day: 6, module: 'Mock Technical Round', task: 'Participate in live 1-on-1 Rooman Mentor technical mock drill', durationMinutes: 60, benchmark: 'Mentor Clearance Recommendation' },
+          { day: 7, module: 'Final Company Mock', task: 'Simulate full company-specific online assessment with timer', durationMinutes: 90, benchmark: 'Pass cutoff threshold' }
+        ],
+        mustKnowCompanyTopics: ['Time & Space Complexity', 'REST API Architecture', 'Database Transactions & ACID', 'Git Branching Strategies'],
+        mockInterviewFocusAreas: ['Explaining trade-offs in project design', 'Handling coding hints productively', 'Communication under timed pressure'],
+        rooomRemedialClinicsRecommended: ['Rooman DSA Masterclass Clinic', 'Corporate Behavioral Pitch Lab', 'Cloud Architecture Bootcamp']
+      },
+      fallback: true
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to generate readiness plan' });
+  }
+});
+
+// 3. Interactive Multi-Turn Mock Interview
+app.post('/api/gemini/interactive-interview', async (req, res) => {
+  try {
+    const { history = [], targetRole, targetCompany, candidateAnswer, currentQuestion } = req.body;
+    const ai = getAIClient();
+    if (ai) {
+      const prompt = `You are a Senior Technical Interviewer evaluating a candidate for ${targetRole || 'Software Engineer'} at ${targetCompany || 'Top Tech Firm'}.
+Current Question: "${currentQuestion || 'Tell me about a technical project you built.'}"
+Candidate Answer: "${candidateAnswer || ''}"
+Previous Context: ${JSON.stringify(history.slice(-4))}
+
+Analyze this turn with STAR method scrutiny (Situation, Task, Action, Metrics).
+Return ONLY a valid JSON object matching this schema:
+{
+  "turnScore": number (1 to 100),
+  "starAnalysis": {
+    "situation": string,
+    "task": string,
+    "action": string,
+    "metrics": string
+  },
+  "feedback": string,
+  "followUpChallenge": string,
+  "modelAnswerSample": string
+}`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.3 }
+      });
+      return res.json({ success: true, ...JSON.parse(response.text || '{}') });
+    }
+    return res.json({
+      success: true,
+      turnScore: 84,
+      starAnalysis: {
+        situation: 'Well defined context describing production scaling bottleneck.',
+        task: 'Clearly articulated ownership over backend latency and DB connection timeouts.',
+        action: 'Employed Python cProfile and connection pooling with context managers.',
+        metrics: 'Quantified drop in timeouts to zero, though latency numbers could be sharper.'
+      },
+      feedback: 'Strong technical explanation. State exact latency reduction (e.g. from 450ms down to 80ms) for higher marks.',
+      followUpChallenge: 'How would your connection pooling architecture handle sudden traffic spikes that exhaust even the enlarged connection pool?',
+      modelAnswerSample: 'When our API traffic spiked to 12k concurrent users, I profiled the bottleneck using cProfile, identified leaked DB connections, and redesigned the pool with bounded leases, dropping P99 latency by 62%.',
+      fallback: true
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to process interview turn' });
+  }
+});
+
+// 4. Audit GitHub Portfolio & Engineering Rigor
+app.post('/api/gemini/audit-portfolio', async (req, res) => {
+  try {
+    const { githubUsername = 'developer', repos = [], studentName } = req.body;
+    const ai = getAIClient();
+    if (ai) {
+      const prompt = `You are an Engineering Hiring Manager & Tech Lead.
+Audit the following GitHub engineering profile and project repositories for student: ${studentName || 'Candidate'}.
+GitHub Handle: ${githubUsername}
+Repos Summary: ${JSON.stringify(repos.slice(0, 5))}
+
+Evaluate engineering rigor, architecture, documentation, test suites, and production readiness.
+Return ONLY a valid JSON object matching this schema:
+{
+  "engineeringRigorScore": number,
+  "commitConsistency": string,
+  "architectureRating": "Enterprise Ready" | "Solid Full-Stack" | "Tutorial Grade" | "Needs Structure",
+  "strengths": string[],
+  "redFlags": string[],
+  "recommendedProjects": string[]
+}`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.2 }
+      });
+      return res.json({ success: true, ...JSON.parse(response.text || '{}') });
+    }
+    return res.json({
+      success: true,
+      engineeringRigorScore: 82,
+      commitConsistency: 'Consistent 4-month streak with atomic commit messages and feature branches.',
+      architectureRating: 'Solid Full-Stack',
+      strengths: [
+        'Well-architected microservices codebase with modular Express routers and schema separation',
+        'Clear root README files with architectural diagrams, environment setup, and demo recordings',
+        'Demonstrates understanding of async state handling and debounced search'
+      ],
+      redFlags: [
+        'Missing automated unit/integration test suites (e.g. Jest, Vitest, Playwright)',
+        'Environment variables occasionally hardcoded in fallback configuration blocks'
+      ],
+      recommendedProjects: [
+        'Build a Distributed Task Queue using Redis Streams & Node.js worker pools with graceful shutdown',
+        'Deploy an OpenTelemetry tracing demo across two microservices with Jaeger visualization'
+      ],
+      fallback: true
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to audit portfolio' });
+  }
+});
+
+// 5. ATS Resume Analyzer
+app.post('/api/gemini/ats-resume-analyzer', async (req, res) => {
+  try {
+    const { resumeSummary, skills, targetRole, experience } = req.body;
+    const ai = getAIClient();
+    if (ai) {
+      const prompt = `You are CAMPUSLINK AI ATS Resume Evaluator for Rooman Technologies.
+Analyze this student's profile for target role "${targetRole || 'Software / Cloud Engineer'}".
+Resume Summary: ${resumeSummary || 'Not provided'}
+Skills: ${JSON.stringify(skills || [])}
+Experience: ${JSON.stringify(experience || [])}
+
+Provide an ATS evaluation in JSON format:
+{
+  "atsScore": number,
+  "benchmarkTier": string,
+  "keyMatchedKeywords": string[],
+  "missingCriticalKeywords": string[],
+  "bulletImprovements": [
+    { "original": string, "improved": string, "impactRationale": string }
+  ],
+  "actionableTips": string[],
+  "overallVerdict": string
+}`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json', temperature: 0.2 }
+      });
+      return res.json({ success: true, analysis: JSON.parse(response.text || '{}') });
+    }
+    return res.json({
+      success: true,
+      analysis: {
+        atsScore: 88,
+        benchmarkTier: 'High Match (85-100)',
+        keyMatchedKeywords: ['Python', 'FastAPI', 'Distributed Systems', 'PostgreSQL', 'Docker', 'RESTful APIs'],
+        missingCriticalKeywords: ['CI/CD Pipeline', 'Kubernetes Deployment', 'Unit Testing', 'Agile/Scrum'],
+        bulletImprovements: [
+          {
+            original: 'Built a web application for booking appointments using React and Node.js.',
+            improved: 'Architected full-stack appointment platform in React & Node.js, reducing booking latency by 35% across 2,000+ daily sessions.',
+            impactRationale: 'Introduces strong action verb (Architected) and quantifiable performance metrics.'
+          }
+        ],
+        actionableTips: [
+          'Add a distinct "Cloud & DevOps" category to your skills section.',
+          'Link GitHub repositories with active CI build badges to verify code quality.'
+        ],
+        overallVerdict: 'Strong technical baseline with high ATS keyword penetration for cloud engineering roles.'
+      },
+      fallback: true
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to analyze resume' });
+  }
+});
+
 app.post('/api/gemini/campus-helpdesk', async (req, res) => {
   return res.json({
     success: true,

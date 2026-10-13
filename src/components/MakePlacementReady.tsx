@@ -242,7 +242,7 @@ export const MakePlacementReady: React.FC<MakePlacementReadyProps> = ({
           daysUntilDrive: 14
         })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.success && data.plan) {
         setAiSprintPlan(data.plan);
       }
@@ -291,7 +291,7 @@ export const MakePlacementReady: React.FC<MakePlacementReadyProps> = ({
           currentQuestion: interviewQuestion
         })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.success) {
         setInterviewEvaluation(data);
         const newTurn = {
@@ -331,12 +331,12 @@ export const MakePlacementReady: React.FC<MakePlacementReadyProps> = ({
           experience: selectedStudent.internships
         })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.success) {
         setTailoredResumeData(data);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error tailoring resume:', err);
     } finally {
       setIsTailoringResume(false);
     }
@@ -355,7 +355,7 @@ export const MakePlacementReady: React.FC<MakePlacementReadyProps> = ({
           studentName: selectedStudent.name
         })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.success) {
         setPortfolioAudit(data);
       }
@@ -380,7 +380,7 @@ export const MakePlacementReady: React.FC<MakePlacementReadyProps> = ({
           experience: selectedStudent.internships
         })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.success) {
         setResumeAnalysis(data.analysis);
       }
